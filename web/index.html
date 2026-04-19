@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Management</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#f7f6f2; --surface:#fff; --surface2:#f1efe9; --text:#1f1f1f; --muted:#666; --primary:#01696f; --danger:#a13544; --border:#d8d4cc; --success:#437a22; --radius:14px; --shadow:0 12px 32px rgba(0,0,0,.08); }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:'Satoshi',sans-serif; background:var(--bg); color:var(--text); }
+    .wrap { max-width:1200px; margin:0 auto; padding:24px; }
+    .top { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:24px; }
+    .logo { font-size:28px; font-weight:700; color:var(--primary); }
+    .grid { display:grid; grid-template-columns:360px 1fr; gap:24px; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:20px; }
+    h1,h2 { margin:0 0 16px; }
+    form { display:grid; gap:12px; }
+    input, select, textarea, button { width:100%; padding:12px 14px; border-radius:12px; border:1px solid var(--border); font:inherit; }
+    button { cursor:pointer; background:var(--primary); color:#fff; border:none; font-weight:700; }
+    button.secondary { background:var(--surface2); color:var(--text); border:1px solid var(--border); }
+    button.danger { background:var(--danger); }
+    .actions { display:flex; gap:8px; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { text-align:left; padding:12px; border-bottom:1px solid var(--border); vertical-align:top; }
+    th { color:var(--muted); font-size:14px; }
+    .status { display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+    .new { background:#e4f0f1; color:#0d5960; }
+    .paid { background:#e6f2dd; color:var(--success); }
+    .shipped { background:#dce8f6; color:#245b8a; }
+    .cancelled { background:#f5dce0; color:var(--danger); }
+    .toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:12px; }
+    .msg { margin-bottom:12px; color:var(--primary); font-weight:700; min-height:24px; }
+    @media (max-width: 900px) { .grid { grid-template-columns:1fr; } .toolbar{flex-direction:column;align-items:flex-start;} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <div class="logo">Order Management</div>
+        <div>Минимальная система управления заказами</div>
+      </div>
+      <button class="secondary" onclick="loadOrders()">Обновить</button>
+    </div>
+    <div class="grid">
+      <section class="card">
+        <h2 id="form-title">Новый заказ</h2>
+        <div class="msg" id="message"></div>
+        <form id="order-form">
+          <input type="hidden" id="order-id">
+          <input id="customer" placeholder="Клиент" required>
+          <input id="email" type="email" placeholder="Email" required>
+          <input id="amount" type="number" min="0" step="0.01" placeholder="Сумма" required>
+          <select id="status" required>
+            <option value="new">new</option>
+            <option value="paid">paid</option>
+            <option value="shipped">shipped</option>
+            <option value="cancelled">cancelled</option>
+          </select>
+          <textarea id="description" rows="4" placeholder="Описание"></textarea>
+          <div class="actions">
+            <button type="submit">Сохранить</button>
+            <button type="button" class="secondary" onclick="resetForm()">Сбросить</button>
+          </div>
+        </form>
+      </section>
+      <section class="card">
+        <div class="toolbar">
+          <h2>Заказы</h2>
+          <input id="search" placeholder="Фильтр по клиенту / email" oninput="renderOrders()">
+        </div>
+        <table>
+          <thead>
+            <tr><th>ID</th><th>Клиент</th><th>Email</th><th>Сумма</th><th>Статус</th><th>Описание</th><th>Действия</th></tr>
+          </thead>
+          <tbody id="orders-body"></tbody>
+        </table>
+      </section>
+    </div>
+  </div>
+<script>
+const API = '/api/orders';
+let orders = [];
+async function loadOrders() {
+  const res = await fetch(API);
+  orders = await res.json();
+  renderOrders();
+}
+function renderOrders() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const body = document.getElementById('orders-body');
+  body.innerHTML = '';
+  orders.filter(o => [o.customer, o.email, o.description].join(' ').toLowerCase().includes(q)).forEach(o => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${o.id}</td><td>${o.customer}</td><td>${o.email}</td><td>${Number(o.amount).toFixed(2)}</td><td><span class="status ${o.status}">${o.status}</span></td><td>${o.description || ''}</td><td><div class="actions"><button class="secondary" onclick="editOrderById(${o.id})">Ред.</button><button class="danger" onclick="deleteOrder(${o.id})">Удал.</button></div></td>`;
+    body.appendChild(tr);
+  });
+}
+function showMessage(text) { document.getElementById('message').textContent = text; setTimeout(() => document.getElementById('message').textContent = '', 2500); }
+function resetForm() { document.getElementById('form-title').textContent = 'Новый заказ'; document.getElementById('order-form').reset(); document.getElementById('order-id').value = ''; document.getElementById('status').value = 'new'; }
+function editOrderById(id) {
+  const o = orders.find(x => x.id === id); if (!o) return;
+  document.getElementById('form-title').textContent = `Редактирование заказа #${o.id}`;
+  document.getElementById('order-id').value = o.id;
+  document.getElementById('customer').value = o.customer;
+  document.getElementById('email').value = o.email;
+  document.getElementById('amount').value = o.amount;
+  document.getElementById('status').value = o.status;
+  document.getElementById('description').value = o.description || '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+async function deleteOrder(id) {
+  if (!confirm(`Удалить заказ #${id}?`)) return;
+  const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+  if (!res.ok) return showMessage('Ошибка удаления');
+  showMessage('Заказ удалён');
+  await loadOrders();
+}
+document.getElementById('order-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const payload = { customer: customer.value, email: email.value, amount: Number(amount.value), status: status.value, description: description.value };
+  const id = document.getElementById('order-id').value;
+  const res = await fetch(id ? `${API}/${id}` : API, { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  if (!res.ok) return showMessage('Ошибка сохранения');
+  showMessage(id ? 'Заказ обновлён' : 'Заказ создан');
+  resetForm();
+  await loadOrders();
+});
+loadOrders();
+</script>
+</body>
+</html>

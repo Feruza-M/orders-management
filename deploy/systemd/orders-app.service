@@ -1,0 +1,23 @@
+[Unit]
+Description=Order Management App
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=orders
+Group=orders
+WorkingDirectory=/opt/order-management-app
+EnvironmentFile=/opt/order-management-app/.env
+ExecStart=/opt/order-management-app/orders-app
+Restart=always
+RestartSec=3
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/order-management-app
+
+[Install]
+WantedBy=multi-user.target
