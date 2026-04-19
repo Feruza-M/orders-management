@@ -1,18 +1,22 @@
 services:
+
   db:
     image: postgres:15
     container_name: orders-db
+
     environment:
       POSTGRES_DB: orders_db
       POSTGRES_USER: orders_app
       POSTGRES_PASSWORD: orders_password
+
     volumes:
       - db_data:/var/lib/postgresql/data
       - ./migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
 
   app:
-    image: filizmamedova/orders-management:${APP_VERSION}
+    image: docferuza2024/orders-management:${APP_VERSION}
     container_name: orders-app
+
     environment:
       APP_ADDR: ":8080"
       DB_HOST: db
@@ -21,16 +25,20 @@ services:
       DB_USER: orders_app
       DB_PASSWORD: orders_password
       DB_SSLMODE: disable
+
     depends_on:
       - db
 
   nginx:
     image: nginx:latest
     container_name: orders-nginx
+
     ports:
       - "8082:80"
+
     volumes:
       - ./deploy/nginx/orders.conf:/etc/nginx/conf.d/default.conf
+
     depends_on:
       - app
 
