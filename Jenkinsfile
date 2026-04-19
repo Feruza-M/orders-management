@@ -7,6 +7,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'filizmamedova/orders-management'
+        VERSION = "${params.APP_VERSION ?: '1.0'}"
     }
 
     stages {
@@ -24,9 +25,11 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh '''
+                        set -e
+                        echo "Using version: ${VERSION}"
                         echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                        docker build -t ${IMAGE_NAME}:${APP_VERSION} .
-                        docker push ${IMAGE_NAME}:${APP_VERSION}
+                        docker build -t ${IMAGE_NAME}:${VERSION} .
+                        docker push ${IMAGE_NAME}:${VERSION}
                     '''
                 }
             }
@@ -35,7 +38,10 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                    export APP_VERSION=${APP_VERSION}
+                    set -e
+                    export APP_VERSION=${VERSION}
+                    echo "Deploying version: ${APP_VERSION}"
+                    docker compose down || true
                     docker compose pull
                     docker compose up -d
                 '''
@@ -53,6 +59,9 @@ pipeline {
     }
 
     post {
+        always {
+            sh 'docker compose ps || true'
+        }
         failure {
             sh 'docker compose logs || true'
         }
