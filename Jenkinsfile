@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = 'filizmamedova/orders-management'
+        IMAGE_NAME = 'docferuza2024/orders-management'
         VERSION = "${params.APP_VERSION ?: '1.0'}"
     }
 
